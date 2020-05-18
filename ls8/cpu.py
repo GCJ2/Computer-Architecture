@@ -2,64 +2,92 @@
 
 import sys
 
+# We need LDI, PRN, and HLT
+LDI = 0b10000010
+PRN = 0b01000111
+HLT = 0b00000001
+
+# Registry, Memory/RAM, Program Counter needed
+
+# Need a way to write to RAM
+# Need a way to read RAM
+"""
+MAR: Memory Address Register, holds the memory address we're reading or writing
+This is the spot in the register where we are reading/writing
+
+MDR: Memory Data Register, holds the value to write or the value just read
+This is the value of what we are reading/writing in the register
+
+MAR will take in a register location as an argument (self, reg_num)
+MDR will take in a register location and a value (self, reg_num, value)
+"""
+
+
 class CPU:
-    """Main CPU class."""
+	"""Main CPU class."""
 
-    def __init__(self):
-        """Construct a new CPU."""
-        pass
+	def __init__(self):
+		self.register = [0] * 8
+		self.ram = [0] * 256
+		self.pc = 0
 
-    def load(self):
-        """Load a program into memory."""
+	def read(self, reg_num):  # Take in a register location to read
+		returned_value = self.ram[reg_num]  # Set returned_value to be returned to what is index there within the RAM
+		return returned_value  # Return the value
 
-        address = 0
+	def write(self, reg_num, value):    # Take in a register location to write a value to
+		self.ram[reg_num] = value   # At the ram index, set that index to the value passed in
 
-        # For now, we've just hardcoded a program:
+	def load(self):
+		"""Load a program into memory."""
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+		address = 0
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+		# For now, we've just hardcoded a program:
 
+		program = [
+			# From print8.ls8
+			0b10000010,  # LDI R0,8
+			0b00000000,
+			0b00001000,
+			0b01000111,  # PRN R0
+			0b00000000,
+			0b00000001,  # HLT
+		]
 
-    def alu(self, op, reg_a, reg_b):
-        """ALU operations."""
+		for instruction in program:
+			self.ram[address] = instruction
+			address += 1
 
-        if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
-        #elif op == "SUB": etc
-        else:
-            raise Exception("Unsupported ALU operation")
+	def alu(self, op, reg_a, reg_b):
+		"""ALU operations."""
 
-    def trace(self):
-        """
-        Handy function to print out the CPU state. You might want to call this
-        from run() if you need help debugging.
-        """
+		if op == "ADD":
+			self.reg[reg_a] += self.reg[reg_b]
+		# elif op == "SUB": etc
+		else:
+			raise Exception("Unsupported ALU operation")
 
-        print(f"TRACE: %02X | %02X %02X %02X |" % (
-            self.pc,
-            #self.fl,
-            #self.ie,
-            self.ram_read(self.pc),
-            self.ram_read(self.pc + 1),
-            self.ram_read(self.pc + 2)
-        ), end='')
+	def trace(self):
+		"""
+		Handy function to print out the CPU state. You might want to call this
+		from run() if you need help debugging.
+		"""
 
-        for i in range(8):
-            print(" %02X" % self.reg[i], end='')
+		print(f"TRACE: %02X | %02X %02X %02X |" % (
+			self.pc,
+			# self.fl,
+			# self.ie,
+			self.ram_read(self.pc),
+			self.ram_read(self.pc + 1),
+			self.ram_read(self.pc + 2)
+		), end='')
 
-        print()
+		for i in range(8):
+			print(" %02X" % self.reg[i], end='')
 
-    def run(self):
-        """Run the CPU."""
-        pass
+		print()
+
+	def run(self):
+		"""Run the CPU."""
+		pass
