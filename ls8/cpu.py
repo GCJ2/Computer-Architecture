@@ -97,6 +97,7 @@ class CPU:
 				self.pc += 3
 			elif command == PRN:
 				print(self.register[self.pc])
+				self.pc += 2
 			elif command == HLT:
 				running = False
 			else:
