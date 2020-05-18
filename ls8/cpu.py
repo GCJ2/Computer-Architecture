@@ -3,9 +3,9 @@
 import sys
 
 # We need LDI, PRN, and HLT
-LDI = 0b10000010
-PRN = 0b01000111
-HLT = 0b00000001
+LDI = 0b10000010  # Set Value
+PRN = 0b01000111  # Print Value
+HLT = 0b00000001  # Stop CPU
 
 # Registry, Memory/RAM, Program Counter needed
 
@@ -35,8 +35,8 @@ class CPU:
 		returned_value = self.ram[reg_num]  # Set returned_value to be returned to what is index there within the RAM
 		return returned_value  # Return the value
 
-	def write(self, reg_num, value):    # Take in a register location to write a value to
-		self.ram[reg_num] = value   # At the ram index, set that index to the value passed in
+	def write(self, reg_num, value):  # Take in a register location to write a value to
+		self.ram[reg_num] = value  # At the ram index, set that index to the value passed in
 
 	def load(self):
 		"""Load a program into memory."""
@@ -89,5 +89,16 @@ class CPU:
 		print()
 
 	def run(self):
-		"""Run the CPU."""
-		pass
+		running = True
+		while running:
+			command = self.ram[self.pc]
+			if command == LDI:
+				self.register[self.pc + 1] = self.pc + 2
+				self.pc += 3
+			elif command == PRN:
+				print(self.register[self.pc])
+			elif command == HLT:
+				running = False
+			else:
+				print("Command Unknown")
+				break
