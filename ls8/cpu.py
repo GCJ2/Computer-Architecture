@@ -2,7 +2,6 @@
 
 import sys
 
-
 # print(sys.argv)
 # print(sys.argv[1])
 
@@ -51,16 +50,19 @@ class CPU:
 		"""Load a program into memory."""
 
 		address = 0
-		program = sys.argv[1]
+		program = program
 		print(program)
 		with open(program) as f:
 			for line in f:
-				line = int(line)
-				# print(line, end='')
-				self.ram[address] = line
-				print(self.ram[address])
-				address += 1
-				# print(self.ram)
+				# print(line)
+				command = line.split('#')  # Remove comments
+				command = command[0].strip()  # Removes whitespaces
+				print(command)
+				# # commands = int(commands) This makes everything base 10, instead of base 2
+				# command = int(command)
+				# self.ram[address] = command
+				# # print(self.ram[address])
+				# address += 1
 
 		# For now, we've just hardcoded a program:
 
