@@ -2,6 +2,11 @@
 
 import sys
 
+
+# print(sys.argv)
+# print(sys.argv[1])
+
+
 # We need LDI, PRN, and HLT
 LDI = 0b10000010  # Set Value
 PRN = 0b01000111  # Print Value
@@ -42,33 +47,25 @@ class CPU:
 	def ram_write(self, reg_num, value):  # Take in a register location to write a value to
 		self.ram[reg_num] = value  # At the ram index, set that index to the value passed in
 
-	def load(self):
+	def load(self, program):
 		"""Load a program into memory."""
 
 		address = 0
+		program = sys.argv[1]
+		print(program)
+		with open(program) as f:
+			for line in f:
+				line = int(line)
+				# print(line, end='')
+				self.ram[address] = line
+				print(self.ram[address])
+				address += 1
+				# print(self.ram)
 
 		# For now, we've just hardcoded a program:
 
 		program = [
-			# # From print8.ls8
-			# 0b10000010,  # LDI R0,8; Save value at...
-			# 0b00000000,  # ...R0
-			# 0b00001000,  # The value of 8
-			# 0b01000111,  # PRN R0; Print...
-			# 0b00000000,  # ... what's at R0
-			# 0b00000001,  # HLTl; Stop program
-			0b10000010,  # LDI R0,8
-			0b00000000,
-			0b00001000,
-			0b10000010,  # LDI R1,9
-			0b00000001,
-			0b00001001,
-			0b10100010,  # MUL R0,R1
-			0b00000000,
-			0b00000001,
-			0b01000111,  # PRN R0
-			0b00000000,
-			0b00000001  # HLT
+
 		]
 
 		for instruction in program:
