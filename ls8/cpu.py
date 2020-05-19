@@ -6,6 +6,7 @@ import sys
 LDI = 0b10000010  # Set Value
 PRN = 0b01000111  # Print Value
 HLT = 0b00000001  # Stop CPU
+MUL = 0b10100010  # Multiply two registers together
 
 # Registry, Memory/RAM, Program Counter needed
 
@@ -49,13 +50,25 @@ class CPU:
 		# For now, we've just hardcoded a program:
 
 		program = [
-			# From print8.ls8
-			0b10000010,  # LDI R0,8; Save value at...
-			0b00000000,  # ...R0
-			0b00001000,  # The value of 8
-			0b01000111,  # PRN R0; Print...
-			0b00000000,  # ... what's at R0
-			0b00000001,  # HLTl; Stop program
+			# # From print8.ls8
+			# 0b10000010,  # LDI R0,8; Save value at...
+			# 0b00000000,  # ...R0
+			# 0b00001000,  # The value of 8
+			# 0b01000111,  # PRN R0; Print...
+			# 0b00000000,  # ... what's at R0
+			# 0b00000001,  # HLTl; Stop program
+			0b10000010,  # LDI R0,8
+			0b00000000,
+			0b00001000,
+			0b10000010,  # LDI R1,9
+			0b00000001,
+			0b00001001,
+			0b10100010,  # MUL R0,R1
+			0b00000000,
+			0b00000001,
+			0b01000111,  # PRN R0
+			0b00000000,
+			0b00000001  # HLT
 		]
 
 		for instruction in program:
@@ -68,6 +81,8 @@ class CPU:
 		if op == "ADD":
 			self.reg[reg_a] += self.reg[reg_b]
 		# elif op == "SUB": etc
+		if op == "MUL":
+			self.reg[reg_a] *= self.reg[reg_b]
 		else:
 			raise Exception("Unsupported ALU operation")
 
@@ -103,6 +118,9 @@ class CPU:
 			elif command == PRN:
 				print(self.reg[a])
 				self.pc += 2
+			elif command == MUL:
+				self.alu('MUL', a, b)
+				self.pc += 3
 			elif command == HLT:
 				running = False
 			else:
