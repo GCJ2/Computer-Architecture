@@ -57,12 +57,14 @@ class CPU:
 				# print(line)
 				command = line.split('#')  # Remove comments
 				command = command[0].strip()  # Removes whitespaces
-				print(command)
-				# # commands = int(commands) This makes everything base 10, instead of base 2
-				# command = int(command)
-				# self.ram[address] = command
-				# # print(self.ram[address])
-				# address += 1
+				# print(command)
+				# command = int(commands) This makes everything base 10, instead of base 2
+				if command == '':   # This just i
+					continue
+				command = int(command, 2)
+				self.ram[address] = command
+				# print(self.ram[address])
+				address += 1
 
 		# For now, we've just hardcoded a program:
 
