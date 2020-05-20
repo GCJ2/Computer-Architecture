@@ -65,7 +65,6 @@ class CPU:
 		self.reg = [0] * 8
 		self.ram = [0] * 256
 		self.pc = 0
-
 	def ram_read(self, reg_num):  # Take in a register location to read
 		returned_value = self.ram[reg_num]  # Set returned_value to be returned to what is index there within the RAM
 		return returned_value  # Return the value
@@ -138,7 +137,7 @@ class CPU:
 	def run(self):
 		running = True
 		while running:
-			self.trace()
+			# self.trace()
 			command = self.ram[self.pc]  # Current command
 			a = self.ram_read(self.pc + 1)  # Passes into ram_read the register index to be read after the command
 			b = self.ram_read(self.pc + 2)  # Passes into ram_read the value to be found
@@ -153,16 +152,16 @@ class CPU:
 				self.alu('MUL', a, b)
 				self.pc += 3
 			elif command == PUSH:
-				selected_reg = self.ram_read(self.pc + 1)  # Find current register
+				selected_reg = a  # Find current register
 				value = self.reg[selected_reg]  # Get the value out of it
 				self.reg[SP] -= 1  # Decrement the stack pointer
 				self.ram_write(self.reg[SP], value)  # At the SP location in RAM, add the value from the reg
 				self.pc += 2  # Increment by two, as is two-bit OP
 			elif command == POP:
-				selected_reg = self.ram_read(self.pc + 1)  # Find selected register
+				selected_reg = a  # Find selected register
 				value = self.ram_read(self.reg[SP])  # Get the value of whatever is stored at the SP
 				self.reg[selected_reg] = value  # Set the selected_reg in the register to the value taken from the SP
-				self.reg[SP] += 1  # Increment the SP
+				self.reg[SP] += 1  # Increment the SP and leave sub behind just like I left Becky behind on read
 				self.pc += 2  # Increment PC by two, as POP is a two-bit operation
 
 			elif command == HLT:
