@@ -12,10 +12,17 @@ import sys
 LDI = 0b10000010  # Set Value
 PRN = 0b01000111  # Print Value
 HLT = 0b00000001  # Stop CPU
+
+ADD = 0b10100000
+SUB = 0b10100001
 MUL = 0b10100010  # Multiply two registers together
+DIV = 0b10100011
+
 PUSH = 0b01000101  # Push
 POP = 0b01000110  # Pop
-SP = 7
+
+CALL = 0b01010000
+RET = 0b00010001
 
 """
 PUSH:
@@ -57,6 +64,24 @@ MAR will take in a register location as an argument (self, reg_num)
 MDR will take in a register location and a value (self, reg_num, value)
 """
 
+"""
+CALL
+
+Calls a subroutine (function) at the address stored in the register.
+
+The address of the instruction directly after CALL is pushed onto the stack. 
+This allows us to return to where we left off when the subroutine finishes executing.
+The PC is set to the address stored in the given register. 
+We jump to that location in RAM and execute the first instruction in the subroutine. 
+The PC can move forward or backwards from its current location.
+
+RET
+
+Return from subroutine.
+
+Pop the value from the top of the stack and store it in the PC.
+"""
+
 
 class CPU:
 	"""Main CPU class."""
@@ -65,6 +90,19 @@ class CPU:
 		self.reg = [0] * 8
 		self.ram = [0] * 256
 		self.pc = 0
+		self.SP = 7
+		self.branchtable = {
+			LDI: self.ldi,
+			PRN: self.prn,
+			HLT: self.hlt,
+			ADD: self.add,
+			MUL: self.mul,
+			PUSH: self.push,
+			POP: self.pop,
+			CALL: self.call,
+			RET: self.ret
+		}
+
 	def ram_read(self, reg_num):  # Take in a register location to read
 		returned_value = self.ram[reg_num]  # Set returned_value to be returned to what is index there within the RAM
 		return returned_value  # Return the value
@@ -108,11 +146,61 @@ class CPU:
 
 		if op == "ADD":
 			self.reg[reg_a] += self.reg[reg_b]
-		# elif op == "SUB": etc
-		if op == "MUL":
+		elif op == 'SUB':
+			self.reg[reg_a] -= self.reg[reg_b]
+		elif op == 'MUL':
 			self.reg[reg_a] *= self.reg[reg_b]
+		elif op == 'DIV':
+			self.reg[reg_a] /= self.reg[reg_b]
 		else:
 			raise Exception("Unsupported ALU operation")
+
+	def ldi(self, a, b):
+		# print('ldi')
+		self.reg[a] = b
+		# print(f'Added {b} to {self.reg[a]}')
+		self.pc += 3
+
+	def add(self, a, b):
+		self.alu('ADD', a, b)
+		self.pc += 3
+
+	def prn(self, a, b):
+		print(self.reg[a])
+		self.pc += 2
+
+	def mul(self, a, b):
+		self.alu('MUL', a, b)
+		self.pc += 3
+
+	def hlt(self, a, b):
+		running = False
+		sys.exit()
+
+	def push(self, a, b):
+		selected_reg = a  # Find current register
+		value = self.reg[selected_reg]  # Get the value out of it
+		self.reg[self.SP] -= 1  # Decrement the stack pointer
+		self.ram_write(self.reg[self.SP], value)  # At the SP location in RAM, add the value from the reg
+		self.pc += 2  # Increment by two, as is two-bit OP
+
+	def pop(self, a, b):
+		selected_reg = a  # Find selected register
+		value = self.ram_read(self.reg[self.SP])  # Get the value of whatever is stored at the SP
+		self.reg[selected_reg] = value  # Set the selected_reg in the register to the value taken from the SP
+		self.reg[self.SP] += 1  # Increment the SP and leave sub behind just like I left Becky behind on read
+		self.pc += 2  # Increment PC by two, as POP is a two-bit operation
+
+	def call(self, a, b):
+		return_address = self.pc + 2
+		self.reg[self.SP] -= 1
+		self.ram_write(self.reg[self.SP], return_address)
+		self.pc = self.reg[a]
+
+	def ret(self, a, b):
+		return_address = self.ram_read(self.reg[self.SP])
+		self.reg[self.SP] += 1
+		self.pc = return_address
 
 	def trace(self):
 		"""
@@ -138,34 +226,55 @@ class CPU:
 		running = True
 		while running:
 			# self.trace()
-			command = self.ram[self.pc]  # Current command
+			command = self.ram_read(self.pc)  # Current command
 			a = self.ram_read(self.pc + 1)  # Passes into ram_read the register index to be read after the command
 			b = self.ram_read(self.pc + 2)  # Passes into ram_read the value to be found
-			if command == LDI:
-				self.reg[a] = b
-				# print(f'Added {b} to {self.reg[a]}')
-				self.pc += 3
-			elif command == PRN:
-				print(self.reg[a])
-				self.pc += 2
-			elif command == MUL:
-				self.alu('MUL', a, b)
-				self.pc += 3
-			elif command == PUSH:
-				selected_reg = a  # Find current register
-				value = self.reg[selected_reg]  # Get the value out of it
-				self.reg[SP] -= 1  # Decrement the stack pointer
-				self.ram_write(self.reg[SP], value)  # At the SP location in RAM, add the value from the reg
-				self.pc += 2  # Increment by two, as is two-bit OP
-			elif command == POP:
-				selected_reg = a  # Find selected register
-				value = self.ram_read(self.reg[SP])  # Get the value of whatever is stored at the SP
-				self.reg[selected_reg] = value  # Set the selected_reg in the register to the value taken from the SP
-				self.reg[SP] += 1  # Increment the SP and leave sub behind just like I left Becky behind on read
-				self.pc += 2  # Increment PC by two, as POP is a two-bit operation
-
-			elif command == HLT:
-				running = False
+			if command in self.branchtable:
+				self.branchtable[command](a, b)
 			else:
-				print("Command Unknown")
-				break
+				print('Unknown command')
+			# if command == LDI:
+			# 	# print('ldi')
+			# 	self.reg[a] = b
+			# 	# print(f'Added {b} to {self.reg[a]}')
+			# 	self.pc += 3
+			# elif command == PRN:
+			# 	print(self.reg[a])
+			# 	self.pc += 2
+			# elif command == MUL:
+			# 	# print('mul')
+			# 	self.alu('MUL', a, b)
+			# 	self.pc += 3
+			# elif command == PUSH:
+			# 	# print('push')
+			# 	selected_reg = a  # Find current register
+			# 	value = self.reg[selected_reg]  # Get the value out of it
+			# 	self.reg[self.SP] -= 1  # Decrement the stack pointer
+			# 	self.ram_write(self.reg[self.SP], value)  # At the SP location in RAM, add the value from the reg
+			# 	self.pc += 2  # Increment by two, as is two-bit OP
+			# elif command == POP:
+			# 	# print('pop')
+			# 	selected_reg = a  # Find selected register
+			# 	value = self.ram_read(self.reg[self.SP])  # Get the value of whatever is stored at the SP
+			# 	self.reg[selected_reg] = value  # Set the selected_reg in the register to the value taken from the SP
+			# 	self.reg[self.SP] += 1  # Increment the SP and leave sub behind just like I left Becky behind on read
+			# 	self.pc += 2  # Increment PC by two, as POP is a two-bit operation
+			# elif command == CALL:
+			# 	return_adr = self.pc + 2
+			#
+			# 	self.reg[self.SP] -= 1
+			# 	top_stack = self.reg[self.SP]
+			# 	self.ram[top_stack] = return_adr
+			#
+			# 	reg_num = self.ram_read(self.pc + 1)
+			# 	sub_adr = self.ram[reg_num]
+			#
+			# 	self.pc = sub_adr
+			# elif command == RET:
+			# 	top_stack_adr = self.reg[self.SP]
+			# 	return_adr = self.ram[top_stack_adr]
+			# 	self.reg[self.SP] += 1
+			#
+			# 	self.pc = return_adr
+			# elif command == HLT:
+			# 	running = False
