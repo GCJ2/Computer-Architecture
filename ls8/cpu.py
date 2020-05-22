@@ -24,6 +24,11 @@ POP = 0b01000110  # Pop
 CALL = 0b01010000
 RET = 0b00010001
 
+CMP = 0b10100111  # ALU compares a to b
+JMP = 0b01010100  # Jump to address stored in given register and set PC
+JEQ = 0b01010101  # = Flag is true, jump to address in register
+JNE = 0b01010110  # = Flag is false, jump to address in register
+
 """
 PUSH:
 Push the value in the given register on the stack:
@@ -82,6 +87,20 @@ Return from subroutine.
 Pop the value from the top of the stack and store it in the PC.
 """
 
+"""
+SPRINT:
+CMP:
+CMP registerA registerB
+Compare the values in two registers.
+If they are equal, set the Equal E flag to 1, otherwise set it to 0.
+If registerA is less than registerB, set the Less-than L flag to 1, otherwise set it to 0.
+If registerA is greater than registerB, set the Greater-than G flag to 1, otherwise set it to 0.
+
+JMP
+JEQ
+JNE
+"""
+
 
 class CPU:
 	"""Main CPU class."""
@@ -91,6 +110,7 @@ class CPU:
 		self.ram = [0] * 256
 		self.pc = 0
 		self.SP = 7
+		self.FL = False
 		self.branchtable = {
 			LDI: self.ldi,
 			PRN: self.prn,
@@ -100,7 +120,11 @@ class CPU:
 			PUSH: self.push,
 			POP: self.pop,
 			CALL: self.call,
-			RET: self.ret
+			RET: self.ret,
+			JMP: self.jmp,
+			CMP: self.cmp,
+			JEQ: self.jeq,
+			JNE: self.jne
 		}
 
 	def ram_read(self, reg_num):  # Take in a register location to read
@@ -152,6 +176,21 @@ class CPU:
 			self.reg[reg_a] *= self.reg[reg_b]
 		elif op == 'DIV':
 			self.reg[reg_a] /= self.reg[reg_b]
+		elif op == 'CMP':
+			if self.reg[reg_a] == self.reg[reg_b]:  # If the values are equal
+				self.FL = True  # Set flag to true
+		elif op == 'JMP':  # Set the PC to what is found in reg
+			self.pc = self.reg[reg_a]
+		elif op == 'JEQ':
+			if self.FL:  # If flag is set to True
+				self.pc = self.reg[reg_a]  # Set the PC to what is in said register
+			else:  # Otherwise
+				self.pc += 2  # Advance PC by 2, as JEQ is 2-bit operation
+		elif op == 'JNE':
+			if not self.FL:  # If flag is set to False
+				self.pc = self.reg[reg_a]  # Set the PC to what is in said register
+			else:  # Otherwise
+				self.pc += 2  # Advance PC by 2, as JNE is 2-bit operation
 		else:
 			raise Exception("Unsupported ALU operation")
 
@@ -192,15 +231,33 @@ class CPU:
 		self.pc += 2  # Increment PC by two, as POP is a two-bit operation
 
 	def call(self, a, b):
-		return_address = self.pc + 2
-		self.reg[self.SP] -= 1
-		self.ram_write(self.reg[self.SP], return_address)
-		self.pc = self.reg[a]
+		return_address = self.pc + 2  # Set return_addr to b
+		self.reg[self.SP] -= 1  # Grow stack down
+		self.ram_write(self.reg[self.SP], return_address)  # Write return adr to stack
+		self.pc = self.reg[a]  # Set program counter to a
 
 	def ret(self, a, b):
-		return_address = self.ram_read(self.reg[self.SP])
-		self.reg[self.SP] += 1
-		self.pc = return_address
+		return_address = self.ram_read(self.reg[self.SP])  # Set return to what was put in 236
+		self.reg[self.SP] += 1  # Move stack up ("pop")
+		self.pc = return_address  # Set PC to return address
+
+	###################################################
+	# Pass in a and b into methods from ram_x methods #
+	# JMP, JEQ, and JNE only take a, so b is None     #
+	###################################################
+
+	def cmp(self, a, b):
+		self.alu('CMP', a, b)
+		self.pc += 3
+
+	def jmp(self, a, b):
+		self.alu('JMP', a, None)
+
+	def jeq(self, a, b):
+		self.alu('JEQ', a, None)
+
+	def jne(self, a, b):
+		self.alu('JNE', a, None)
 
 	def trace(self):
 		"""
@@ -233,48 +290,3 @@ class CPU:
 				self.branchtable[command](a, b)
 			else:
 				print('Unknown command')
-			# if command == LDI:
-			# 	# print('ldi')
-			# 	self.reg[a] = b
-			# 	# print(f'Added {b} to {self.reg[a]}')
-			# 	self.pc += 3
-			# elif command == PRN:
-			# 	print(self.reg[a])
-			# 	self.pc += 2
-			# elif command == MUL:
-			# 	# print('mul')
-			# 	self.alu('MUL', a, b)
-			# 	self.pc += 3
-			# elif command == PUSH:
-			# 	# print('push')
-			# 	selected_reg = a  # Find current register
-			# 	value = self.reg[selected_reg]  # Get the value out of it
-			# 	self.reg[self.SP] -= 1  # Decrement the stack pointer
-			# 	self.ram_write(self.reg[self.SP], value)  # At the SP location in RAM, add the value from the reg
-			# 	self.pc += 2  # Increment by two, as is two-bit OP
-			# elif command == POP:
-			# 	# print('pop')
-			# 	selected_reg = a  # Find selected register
-			# 	value = self.ram_read(self.reg[self.SP])  # Get the value of whatever is stored at the SP
-			# 	self.reg[selected_reg] = value  # Set the selected_reg in the register to the value taken from the SP
-			# 	self.reg[self.SP] += 1  # Increment the SP and leave sub behind just like I left Becky behind on read
-			# 	self.pc += 2  # Increment PC by two, as POP is a two-bit operation
-			# elif command == CALL:
-			# 	return_adr = self.pc + 2
-			#
-			# 	self.reg[self.SP] -= 1
-			# 	top_stack = self.reg[self.SP]
-			# 	self.ram[top_stack] = return_adr
-			#
-			# 	reg_num = self.ram_read(self.pc + 1)
-			# 	sub_adr = self.ram[reg_num]
-			#
-			# 	self.pc = sub_adr
-			# elif command == RET:
-			# 	top_stack_adr = self.reg[self.SP]
-			# 	return_adr = self.ram[top_stack_adr]
-			# 	self.reg[self.SP] += 1
-			#
-			# 	self.pc = return_adr
-			# elif command == HLT:
-			# 	running = False
